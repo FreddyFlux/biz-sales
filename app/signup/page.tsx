@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
+import { parseSignUpError } from "@/lib/auth/auth-errors";
+import { AuthErrorAlert } from "@/components/auth-error-alert";
 import { Button } from "@/components/ui/button";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -17,19 +19,28 @@ export default function SignUpPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error: err } = await authClient.signUp.email({
-      email,
-      password,
-      name,
-    });
-    setLoading(false);
-    if (err) {
-      setError(err.message ?? "Sign up failed");
-      return;
+    try {
+      const { error: err } = await authClient.signUp.email({
+        email,
+        password,
+        name,
+      });
+      if (err) {
+        setError(err);
+        return;
+      }
+      router.push("/dashboard");
+      router.refresh();
+    } catch (thrown) {
+      setError(
+        thrown instanceof Error ? thrown : { message: "Sign up failed" }
+      );
+    } finally {
+      setLoading(false);
     }
-    router.push("/dashboard");
-    router.refresh();
   }
+
+  const errorInfo = parseSignUpError(error);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -74,8 +85,11 @@ export default function SignUpPage() {
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
             />
           </div>
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
+          {errorInfo && (
+            <AuthErrorAlert
+              error={errorInfo}
+              showSignInLink={errorInfo.type === "user_already_exists"}
+            />
           )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Signing up..." : "Sign up"}

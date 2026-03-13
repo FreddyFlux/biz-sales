@@ -149,7 +149,7 @@ function ProgressRing({
       <span
         style={{
           fontSize: 10,
-          color: "#4a6080",
+          color: "#769acc",
           textTransform: "uppercase",
           letterSpacing: "0.1em",
           fontWeight: 700,
@@ -251,11 +251,14 @@ function BenchBar({
     : color;
 
   const weekPct =
-    weekValue != null && weekExpected != null && weekExpected > 0
-      ? Math.min((weekValue / weekExpected) * 100, 100)
-      : 0;
+    weekValue != null && weekExpected != null && weekExpected > 0 ?
+      Math.min((weekValue / weekExpected) * 100, 100)
+    : 0;
   const weekOverExpected =
-    weekValue != null && weekExpected != null && weekValue >= weekExpected && weekExpected > 0;
+    weekValue != null &&
+    weekExpected != null &&
+    weekValue >= weekExpected &&
+    weekExpected > 0;
   const weekFill = weekOverExpected ? "#22c55e" : "#4f8fff";
 
   const hasWeek = weekValue != null && weekExpected != null;
@@ -284,14 +287,38 @@ function BenchBar({
           }}
         >
           {/* Today */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: "#3a5070", fontWeight: 700, fontSize: 9, textTransform: "uppercase" }}>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              minWidth: 0,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  color: "#5e81b4",
+                  fontWeight: 700,
+                  fontSize: 9,
+                  textTransform: "uppercase",
+                }}
+              >
                 Today
               </span>
               <span>
                 <span style={{ color: fill, fontWeight: 700 }}>{value}</span>
-                <span style={{ color: "#2a3d5a" }}> · avg {avg} · rec {record}</span>
+                <span style={{ color: "#2a3d5a" }}>
+                  {" "}
+                  · avg {avg} · rec {record}
+                </span>
               </span>
             </div>
             <div
@@ -328,13 +355,36 @@ function BenchBar({
           </div>
           {/* Week */}
           {hasWeek && (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#3a5070", fontWeight: 700, fontSize: 9, textTransform: "uppercase" }}>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span
+                  style={{
+                    color: "#5e81b4",
+                    fontWeight: 700,
+                    fontSize: 9,
+                    textTransform: "uppercase",
+                  }}
+                >
                   Week
                 </span>
                 <span>
-                  <span style={{ color: weekFill, fontWeight: 700 }}>{weekValue}</span>
+                  <span style={{ color: weekFill, fontWeight: 700 }}>
+                    {weekValue}
+                  </span>
                   <span style={{ color: "#2a3d5a" }}>/{weekExpected}</span>
                 </span>
               </div>
@@ -406,7 +456,7 @@ function Card({
           style={{
             fontSize: 11,
             fontWeight: 700,
-            color: "#3a5070",
+            color: "#5e81b4",
             textTransform: "uppercase",
             letterSpacing: "0.12em",
           }}
@@ -491,7 +541,10 @@ export function DashboardClient({
             1
           : 0,
         meetingsExist:
-          payload.kind === "meeting" && payload.outcome === "existing_customer" ?
+          (
+            payload.kind === "meeting" &&
+            payload.outcome === "existing_customer"
+          ) ?
             1
           : 0,
         emails: payload.kind === "email" ? 1 : 0,
@@ -668,7 +721,7 @@ export function DashboardClient({
             <p
               style={{
                 fontSize: 11,
-                color: "#2d4060",
+                color: "#49679a",
                 marginTop: 3,
                 fontFamily: "var(--font-dm-mono), monospace",
                 textTransform: "uppercase",
@@ -709,7 +762,7 @@ export function DashboardClient({
               <div
                 style={{
                   fontSize: 9,
-                  color: "#2d4060",
+                  color: "#49679a",
                   fontWeight: 700,
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
@@ -722,7 +775,7 @@ export function DashboardClient({
             <div
               style={{
                 fontSize: 10,
-                color: "#2a3a50",
+                color: "#445e81",
                 fontFamily: "var(--font-dm-mono), monospace",
               }}
             >
@@ -808,7 +861,7 @@ export function DashboardClient({
               onClick={() =>
                 handleRecord({ kind: "call", outcome: "no_answer" })
               }
-              color="#4a6080"
+              color="#769acc"
               count={stats.todayCalls - stats.todayConnected}
               disabled={isLoading}
             />
@@ -920,12 +973,12 @@ export function DashboardClient({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <Users size={15} style={{ color: "#3a5070" }} />
+            <Users size={15} style={{ color: "#5e81b4" }} />
             <span
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: "#3a5070",
+                color: "#5e81b4",
                 textTransform: "uppercase",
                 letterSpacing: "0.12em",
               }}
@@ -937,7 +990,7 @@ export function DashboardClient({
             <p
               style={{
                 fontSize: 12,
-                color: "#4a6080",
+                color: "#769acc",
                 fontFamily: "var(--font-dm-mono), monospace",
               }}
             >
@@ -966,7 +1019,7 @@ export function DashboardClient({
                     border: "1px solid #1a2840",
                   }}
                 >
-                  <Calendar size={14} style={{ color: "#4a6080" }} />
+                  <Calendar size={14} style={{ color: "#769acc" }} />
                   <span
                     style={{
                       fontSize: 12,
@@ -1009,7 +1062,7 @@ export function DashboardClient({
                 alignItems: "center",
                 gap: 5,
                 fontSize: 10,
-                color: "#2a3a50",
+                color: "#445e81",
                 fontFamily: "var(--font-dm-mono), monospace",
               }}
             >
@@ -1022,7 +1075,7 @@ export function DashboardClient({
                 }}
               />
               <span>
-                <span style={{ color: "#3a5070" }}>{k}</span> = {v}
+                <span style={{ color: "#5e81b4" }}>{k}</span> = {v}
               </span>
             </div>
           ))}
@@ -1037,7 +1090,7 @@ export function DashboardClient({
             paddingTop: 4,
           }}
         >
-          {stats.todayCount > 0 ? (
+          {stats.todayCount > 0 ?
             <button
               type="button"
               onClick={handleDeleteTodaysData}
@@ -1060,9 +1113,7 @@ export function DashboardClient({
               <Trash2 size={12} />
               Delete today&apos;s data
             </button>
-          ) : (
-            <span />
-          )}
+          : <span />}
           <button
             type="button"
             onClick={handleSignOut}

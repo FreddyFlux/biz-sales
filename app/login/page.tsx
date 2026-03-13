@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
+import { parseSignInError } from "@/lib/auth/auth-errors";
+import { AuthErrorAlert } from "@/components/auth-error-alert";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -16,18 +18,27 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error: err } = await authClient.signIn.email({
-      email,
-      password,
-    });
-    setLoading(false);
-    if (err) {
-      setError(err.message ?? "Sign in failed");
-      return;
+    try {
+      const { error: err } = await authClient.signIn.email({
+        email,
+        password,
+      });
+      if (err) {
+        setError(err);
+        return;
+      }
+      router.push("/dashboard");
+      router.refresh();
+    } catch (thrown) {
+      setError(
+        thrown instanceof Error ? thrown : { message: "Sign in failed" }
+      );
+    } finally {
+      setLoading(false);
     }
-    router.push("/dashboard");
-    router.refresh();
   }
+
+  const errorInfo = parseSignInError(error);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -60,8 +71,11 @@ export default function LoginPage() {
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
             />
           </div>
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
+          {errorInfo && (
+            <AuthErrorAlert
+              error={errorInfo}
+              showSignUpLink={errorInfo.type === "invalid_credentials"}
+            />
           )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Signing in..." : "Sign in"}

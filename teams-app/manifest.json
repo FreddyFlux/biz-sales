@@ -1,0 +1,45 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "packageName": "com.digidevs.salestracker",
+  "developer": {
+    "name": "digiDEVS",
+    "websiteUrl": "https://biz-sales.vercel.app",
+    "privacyUrl": "https://biz-sales.vercel.app",
+    "termsOfUseUrl": "https://biz-sales.vercel.app"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "Sales Tracker",
+    "full": "Sales Tracker - Track calls, meetings, and emails"
+  },
+  "description": {
+    "short": "Track daily sales activities",
+    "full": "Track calls, meetings, and emails with daily progress. Monitor your sales activities and stay on top of your goals."
+  },
+  "accentColor": "#FFFFFF",
+  "defaultInstallScope": "personal",
+  "staticTabs": [
+    {
+      "entityId": "sales-tracker-dashboard",
+      "name": "Sales Tracker",
+      "contentUrl": "https://biz-sales.vercel.app/dashboard",
+      "websiteUrl": "https://biz-sales.vercel.app/dashboard",
+      "scopes": ["personal"]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://biz-sales.vercel.app/teams-config",
+      "scopes": ["team", "groupchat"],
+      "context": ["channelTab", "privateChatTab"],
+      "canUpdateConfiguration": true
+    }
+  ],
+  "validDomains": ["https://biz-sales.vercel.app"]
+}
