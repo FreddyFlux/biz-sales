@@ -41,5 +41,5 @@
       "canUpdateConfiguration": true
     }
   ],
-  "validDomains": ["https://biz-sales.vercel.app"]
+  "validDomains": ["biz-sales.vercel.app", "*.vercel.app"]
 }
