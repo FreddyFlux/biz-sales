@@ -30,6 +30,8 @@ export type HistoricalDayBreakdown = {
   emails: number;
 };
 
+export type MonthWithData = { year: number; month: number };
+
 export interface ActivityRepository {
   create(activity: Omit<Activity, "id">): Promise<Activity>;
   delete(id: string, userId: string): Promise<boolean>;
@@ -40,4 +42,10 @@ export interface ActivityRepository {
     recordDayCount: number;
   }>;
   getHistoricalBreakdown(userId: string, daysBack?: number): Promise<HistoricalDayBreakdown[]>;
+  getAvailableMonthsWithData(userId: string): Promise<MonthWithData[]>;
+  getBreakdownForMonth(
+    userId: string,
+    year: number,
+    month: number
+  ): Promise<HistoricalDayBreakdown[]>;
 }

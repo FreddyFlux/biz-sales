@@ -6,6 +6,6 @@ export default neonAuthMiddleware({
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|login|signup|api/auth|teams-config).*)",
+    "/((?!_next/static|_next/image|favicon.ico|login|signup|api/auth|api/health|teams-config).*)",
   ],
 };
