@@ -31,9 +31,11 @@ type UndoableAction = {
 export function DashboardClient({
   initialStats,
   initialMeetings,
+  onInvalidateDailyStats,
 }: {
   initialStats: DailyProgress;
   initialMeetings: Activity[];
+  onInvalidateDailyStats?: () => void;
 }) {
   const [stats, setStats] = useState(initialStats);
   const [meetings, setMeetings] = useState<Activity[]>(initialMeetings);
@@ -161,6 +163,7 @@ export function DashboardClient({
           )
         );
       }
+      onInvalidateDailyStats?.();
     } catch {
       setStats(previousStats);
       setErrorMessage("Failed to record. Please try again.");
@@ -182,6 +185,7 @@ export function DashboardClient({
       if (lastAction.activity?.kind === "meeting") {
         setMeetings((prev) => prev.filter((m) => m.id !== activityId));
       }
+      onInvalidateDailyStats?.();
     } catch {
       setStats(statsBeforeUndo);
       setUndoStack((prev) => [...prev, lastAction]);
@@ -229,6 +233,7 @@ export function DashboardClient({
       });
       setUndoStack([]);
       setMeetings([]);
+      onInvalidateDailyStats?.();
     } catch {
       setErrorMessage("Failed to delete today's data. Please try again.");
     } finally {

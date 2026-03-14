@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 import {
   Card,
@@ -64,71 +65,59 @@ function getDefaultSelection(
   return found ?? available[0] ?? null;
 }
 
+async function fetchStatistics(year?: number, month?: number) {
+  const url =
+    year != null && month != null
+      ? `/api/stats/statistics?year=${year}&month=${month}`
+      : "/api/stats/statistics";
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch statistics");
+  return res.json();
+}
+
 export function StatisticsClient() {
-  const now = new Date();
-  const [availableMonths, setAvailableMonths] = React.useState<MonthWithData[]>(
-    []
-  );
+  const now = React.useRef(new Date()).current;
   const [selected, setSelected] = React.useState<MonthWithData | null>(null);
-  const [breakdown, setBreakdown] = React.useState<DayBreakdown[] | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
 
-  // Fetch available months on mount
+  const {
+    data: monthsData,
+    isLoading: monthsLoading,
+    error: monthsError,
+    refetch: refetchMonths,
+  } = useQuery({
+    queryKey: ["stats", "statistics", "months"],
+    queryFn: () => fetchStatistics(),
+    staleTime: 60 * 1000,
+  });
+
+  const availableMonths = monthsData?.availableMonths ?? [];
+
   React.useEffect(() => {
-    async function load() {
-      try {
-        setError(null);
-        const res = await fetch("/api/stats/statistics");
-        if (!res.ok) throw new Error("Failed to fetch statistics");
-        const data = await res.json();
-        setAvailableMonths(data.availableMonths ?? []);
-        const defaultSel = getDefaultSelection(
-          data.availableMonths ?? [],
-          now
-        );
-        setSelected(defaultSel);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load statistics");
-      } finally {
-        setLoading(false);
-      }
+    if (availableMonths.length > 0 && selected === null) {
+      setSelected(getDefaultSelection(availableMonths, now));
     }
-    load();
-  }, []);
+  }, [availableMonths, selected, now]);
 
-  // Fetch breakdown when selection changes
-  React.useEffect(() => {
-    if (!selected) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    fetch(
-      `/api/stats/statistics?year=${selected.year}&month=${selected.month}`
-    )
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to fetch");
-        return r.json();
-      })
-      .then((data) => {
-        if (!cancelled) setBreakdown(data.breakdown ?? []);
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load data");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selected?.year, selected?.month]);
+  const {
+    data: breakdownData,
+    isLoading: breakdownLoading,
+    error: breakdownError,
+  } = useQuery({
+    queryKey: ["stats", "statistics", "breakdown", selected?.year, selected?.month],
+    queryFn: () =>
+      fetchStatistics(selected!.year, selected!.month),
+    enabled: selected != null,
+    staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
+
+  const breakdown = breakdownData?.breakdown ?? null;
+  const loading = monthsLoading || (selected != null && breakdownLoading);
+  const error = monthsError?.message ?? breakdownError?.message ?? null;
 
   const chartData = React.useMemo(() => {
     if (!breakdown?.length) return [];
-    return breakdown.map((d) => ({
+    return breakdown.map((d: DayBreakdown) => ({
       date: d.day,
       calls: d.calls,
       connected: d.connected,
@@ -138,7 +127,7 @@ export function StatisticsClient() {
 
   const meetingsChartData = React.useMemo(() => {
     if (!breakdown?.length) return [];
-    return breakdown.map((d) => ({
+    return breakdown.map((d: DayBreakdown) => ({
       date: d.day,
       meetingsNew: d.meetingsNew,
       meetingsExist: d.meetingsExist,
@@ -147,21 +136,22 @@ export function StatisticsClient() {
 
   const emailsChartData = React.useMemo(() => {
     if (!breakdown?.length) return [];
-    return breakdown.map((d) => ({
+    return breakdown.map((d: DayBreakdown) => ({
       date: d.day,
       emails: d.emails,
     }));
   }, [breakdown]);
 
+  type ChartItem = { date: string; calls: number; connected: number; noAnswer?: number; meetingsNew?: number; meetingsExist?: number; emails?: number };
   const total = React.useMemo(
     () => ({
-      calls: chartData.reduce((acc, curr) => acc + curr.calls, 0),
-      connected: chartData.reduce((acc, curr) => acc + curr.connected, 0),
+      calls: chartData.reduce((acc: number, curr: ChartItem) => acc + curr.calls, 0),
+      connected: chartData.reduce((acc: number, curr: ChartItem) => acc + curr.connected, 0),
       meetingsBooked: meetingsChartData.reduce(
-        (acc, curr) => acc + curr.meetingsNew + curr.meetingsExist,
+        (acc: number, curr: ChartItem) => acc + (curr.meetingsNew ?? 0) + (curr.meetingsExist ?? 0),
         0
       ),
-      emails: emailsChartData.reduce((acc, curr) => acc + curr.emails, 0),
+      emails: emailsChartData.reduce((acc: number, curr: ChartItem) => acc + (curr.emails ?? 0), 0),
     }),
     [chartData, meetingsChartData, emailsChartData]
   );
@@ -182,11 +172,7 @@ export function StatisticsClient() {
           {error}
         </p>
         <button
-          onClick={() => {
-            setError(null);
-            setLoading(true);
-            window.location.reload();
-          }}
+          onClick={() => refetchMonths()}
           style={{
             padding: "8px 16px",
             borderRadius: 8,
@@ -318,7 +304,7 @@ export function StatisticsClient() {
               fontFamily: "var(--font-dm-mono), monospace",
             }}
           >
-            {availableMonths.map((m) => (
+            {availableMonths.map((m: MonthWithData) => (
               <option
                 key={`${m.year}-${m.month}`}
                 value={`${m.year}-${String(m.month).padStart(2, "0")}`}

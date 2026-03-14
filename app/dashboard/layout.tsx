@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/server";
 import { DashboardNav } from "./dashboard-nav";
+import { QueryProvider } from "./query-provider";
 
 export default async function DashboardLayout({
   children,
@@ -11,6 +12,7 @@ export default async function DashboardLayout({
   if (!user) redirect("/login");
 
   return (
+    <QueryProvider>
     <div
       style={{
         minHeight: "100vh",
@@ -45,5 +47,6 @@ export default async function DashboardLayout({
         {children}
       </div>
     </div>
+    </QueryProvider>
   );
 }
