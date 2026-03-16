@@ -45,7 +45,8 @@ export function MeetingsSection({
         record={rec.meetingsNew}
         color="#00c4bd"
         weekValue={stats.weekToDate.meetingsNew}
-        weekExpected={stats.weekExpected.meetingsNew}
+        prevWeek={stats.prevWeek.meetingsNew}
+        weekRec={stats.weekRec.meetingsNew}
       />
       <BenchBar
         label="Existing customer"
@@ -54,7 +55,8 @@ export function MeetingsSection({
         record={rec.meetingsExist}
         color="#0095ff"
         weekValue={stats.weekToDate.meetingsExist}
-        weekExpected={stats.weekExpected.meetingsExist}
+        prevWeek={stats.prevWeek.meetingsExist}
+        weekRec={stats.weekRec.meetingsExist}
       />
     </DashboardCard>
   );

@@ -117,18 +117,6 @@ export function DashboardClient({
         emails: prev.weekToDate.emails + weekDelta.emails,
       };
 
-      const wdw = prev.workingDaysInWeek ?? 5;
-      const wde = prev.workDaysElapsed ?? 1;
-      const newWeekExpected = {
-        calls: Math.round((newWeekToDate.calls / wdw) * wde),
-        connected: Math.round((newWeekToDate.connected / wdw) * wde),
-        meetingsNew: Math.round((newWeekToDate.meetingsNew / wdw) * wde),
-        meetingsExist: Math.round(
-          (newWeekToDate.meetingsExist / wdw) * wde
-        ),
-        emails: Math.round((newWeekToDate.emails / wdw) * wde),
-      };
-
       return {
         ...prev,
         todayCount: newCount,
@@ -144,7 +132,6 @@ export function DashboardClient({
             ? Math.min(1, newCount / prev.recordDayCount)
             : 0,
         weekToDate: newWeekToDate,
-        weekExpected: newWeekExpected,
       };
     });
     setLoading(JSON.stringify(payload));

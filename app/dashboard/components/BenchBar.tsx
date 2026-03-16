@@ -7,7 +7,8 @@ export function BenchBar({
   record,
   color,
   weekValue,
-  weekExpected,
+  prevWeek,
+  weekRec,
 }: {
   label: string;
   value: number;
@@ -15,7 +16,8 @@ export function BenchBar({
   record: number;
   color: string;
   weekValue?: number;
-  weekExpected?: number;
+  prevWeek?: number;
+  weekRec?: number;
 }) {
   const pct = record > 0 ? Math.min((value / record) * 100, 100) : 0;
   const avgPct = record > 0 ? (avg / record) * 100 : 0;
@@ -25,17 +27,28 @@ export function BenchBar({
     overRec ? "#fbbf24" : overAvg ? "#22c55e" : color;
 
   const weekPct =
-    weekValue != null && weekExpected != null && weekExpected > 0
-      ? Math.min((weekValue / weekExpected) * 100, 100)
+    weekValue != null && weekRec != null && weekRec > 0
+      ? Math.min((weekValue / weekRec) * 100, 100)
       : 0;
-  const weekOverExpected =
+  const prevWeekPct =
+    prevWeek != null && weekRec != null && weekRec > 0
+      ? (prevWeek / weekRec) * 100
+      : 0;
+  const overPrevWeek =
     weekValue != null &&
-    weekExpected != null &&
-    weekValue >= weekExpected &&
-    weekExpected > 0;
-  const weekFill = weekOverExpected ? "#22c55e" : "#4f8fff";
+    prevWeek != null &&
+    weekValue >= prevWeek &&
+    prevWeek > 0;
+  const overWeekRec =
+    weekValue != null &&
+    weekRec != null &&
+    weekValue >= weekRec &&
+    weekRec > 0;
+  const weekFill =
+    overWeekRec ? "#fbbf24" : overPrevWeek ? "#22c55e" : "#4f8fff";
 
-  const hasWeek = weekValue != null && weekExpected != null;
+  const hasWeek =
+    weekValue != null && prevWeek != null && weekRec != null;
 
   return (
     <div
@@ -159,7 +172,10 @@ export function BenchBar({
                   <span style={{ color: weekFill, fontWeight: 700 }}>
                     {weekValue}
                   </span>
-                  <span style={{ color: "#2a3d5a" }}>/{weekExpected}</span>
+                  <span style={{ color: "#2a3d5a" }}>
+                    {" "}
+                    · prev week {prevWeek} · rec {weekRec}
+                  </span>
                 </span>
               </div>
               <div
@@ -167,9 +183,22 @@ export function BenchBar({
                   height: 4,
                   background: "#111d2e",
                   borderRadius: 2,
+                  position: "relative",
                   overflow: "hidden",
                 }}
               >
+                {prevWeekPct > 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: `${prevWeekPct}%`,
+                      top: -1,
+                      width: 1,
+                      height: 6,
+                      background: "#22c55e55",
+                    }}
+                  />
+                )}
                 <div
                   style={{
                     width: `${weekPct}%`,

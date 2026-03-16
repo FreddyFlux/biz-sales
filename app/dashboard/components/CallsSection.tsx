@@ -43,7 +43,8 @@ export function CallsSection({
         record={rec.calls}
         color="#4f8fff"
         weekValue={stats.weekToDate.calls}
-        weekExpected={stats.weekExpected.calls}
+        prevWeek={stats.prevWeek.calls}
+        weekRec={stats.weekRec.calls}
       />
       <BenchBar
         label="Connected"
@@ -52,7 +53,8 @@ export function CallsSection({
         record={rec.connected}
         color="#8b72ff"
         weekValue={stats.weekToDate.connected}
-        weekExpected={stats.weekExpected.connected}
+        prevWeek={stats.prevWeek.connected}
+        weekRec={stats.weekRec.connected}
       />
     </DashboardCard>
   );

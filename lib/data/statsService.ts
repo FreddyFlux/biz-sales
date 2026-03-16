@@ -7,6 +7,7 @@ import { activitiesRepo } from "./activitiesRepo";
 import {
   getWorkingDaysInWeek,
   getWorkDaysElapsedInWeek,
+  getMondayOfWeek,
 } from "@/lib/workingDays";
 
 export type OutcomeBreakdown = {
@@ -37,8 +38,10 @@ export type DailyProgress = {
   daysLogged: number;
   /** Week-to-date totals (Mon–today) for work week progress */
   weekToDate: OutcomeBreakdown;
-  /** Expected at this point: (weekToDate / workingDaysInWeek) × workDaysElapsed */
-  weekExpected: OutcomeBreakdown;
+  /** Full previous week totals (Mon–Sun) */
+  prevWeek: OutcomeBreakdown;
+  /** Best week ever per outcome */
+  weekRec: OutcomeBreakdown;
   /** Norwegian working days elapsed this week (1–5 typically, fewer on holiday weeks) */
   workDaysElapsed: number;
   /** Total Norwegian working days in this week (3–5 typically) */
@@ -69,6 +72,31 @@ function computeBenchmarks(
     rec[f] = Math.max(...vals, 1);
   }
   return { avg, rec, daysLogged: past.length };
+}
+
+/** Get Monday of week as YYYY-MM-DD for a given date string. */
+function getWeekKey(dayStr: string): string {
+  const [y, m, d] = dayStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const monday = getMondayOfWeek(date);
+  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, "0")}-${String(monday.getDate()).padStart(2, "0")}`;
+}
+
+/** Aggregate daily breakdown by week; returns map of weekKey -> totals. */
+function aggregateByWeek(
+  breakdown: { day: string; calls: number; connected: number; meetingsNew: number; meetingsExist: number; emails: number }[]
+): Map<string, OutcomeBreakdown> {
+  const byWeek = new Map<string, OutcomeBreakdown>();
+  const fields = ["calls", "connected", "meetingsNew", "meetingsExist", "emails"] as const;
+  for (const r of breakdown) {
+    const weekKey = getWeekKey(r.day);
+    if (!byWeek.has(weekKey)) {
+      byWeek.set(weekKey, { calls: 0, connected: 0, meetingsNew: 0, meetingsExist: 0, emails: 0 });
+    }
+    const row = byWeek.get(weekKey)!;
+    for (const f of fields) row[f] += r[f] ?? 0;
+  }
+  return byWeek;
 }
 
 export async function getTodayProgress(opts: {
@@ -123,16 +151,17 @@ export async function getTodayProgress(opts: {
     for (const f of fields) weekToDate[f] += (r[f] ?? 0);
   }
 
-  // Expected at this point: use actual week data / working days in week × work days elapsed.
-  // When no data this week, fall back to historical avg × work days elapsed.
-  const weekExpected: OutcomeBreakdown = { calls: 0, connected: 0, meetingsNew: 0, meetingsExist: 0, emails: 0 };
+  // Prev week: full previous week (Mon–Sun). Week rec: best week ever.
+  const byWeek = aggregateByWeek(breakdown);
+  const prevWeekMonday = new Date(monday);
+  prevWeekMonday.setDate(monday.getDate() - 7);
+  const prevWeekKey = `${prevWeekMonday.getFullYear()}-${String(prevWeekMonday.getMonth() + 1).padStart(2, "0")}-${String(prevWeekMonday.getDate()).padStart(2, "0")}`;
+  const prevWeekData = byWeek.get(prevWeekKey);
+  const prevWeek: OutcomeBreakdown = prevWeekData ?? { calls: 0, connected: 0, meetingsNew: 0, meetingsExist: 0, emails: 0 };
+
+  const weekRec: OutcomeBreakdown = { calls: 0, connected: 0, meetingsNew: 0, meetingsExist: 0, emails: 0 };
   for (const f of fields) {
-    const total = weekToDate[f];
-    if (total > 0 && workingDaysInWeek > 0) {
-      weekExpected[f] = Math.round((total / workingDaysInWeek) * workDaysElapsed);
-    } else {
-      weekExpected[f] = Math.round(benchmarks.avg[f] * workDaysElapsed);
-    }
+    weekRec[f] = Math.max(0, ...Array.from(byWeek.values()).map((w) => w[f] ?? 0), 1);
   }
 
   return {
@@ -152,7 +181,8 @@ export async function getTodayProgress(opts: {
     rec: benchmarks.rec,
     daysLogged: benchmarks.daysLogged,
     weekToDate,
-    weekExpected,
+    prevWeek,
+    weekRec,
     workDaysElapsed,
     workingDaysInWeek,
   };

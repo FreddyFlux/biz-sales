@@ -34,7 +34,8 @@ export function EmailsSection({
         record={rec.emails}
         color="#ff6e40"
         weekValue={stats.weekToDate.emails}
-        weekExpected={stats.weekExpected.emails}
+        prevWeek={stats.prevWeek.emails}
+        weekRec={stats.weekRec.emails}
       />
     </DashboardCard>
   );
