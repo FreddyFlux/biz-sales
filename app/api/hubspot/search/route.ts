@@ -5,21 +5,6 @@ export const dynamic = "force-dynamic";
 
 const SEARCH_LIMIT = 100;
 
-/**
- * Segments from spaces / hyphens / underscores. HubSpot CONTAINS_TOKEN matches
- * whole indexed tokens only — a 3-letter segment like "nor" will NOT match
- * "norsk", which breaks typing "midt-nor…". We only AND segments with length
- * >= MIN_HUBSPOT_TOKEN_LEN; shorter pieces are ignored until the user types more.
- */
-const MIN_HUBSPOT_TOKEN_LEN = 4;
-
-function meaningfulSearchTokens(q: string): string[] {
-  return q
-    .split(/[\s\-_]+/)
-    .map((t) => t.trim())
-    .filter((t) => t.length >= MIN_HUBSPOT_TOKEN_LEN);
-}
-
 export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user) {
@@ -48,37 +33,6 @@ export async function GET(req: Request) {
 
   try {
     if (type === "companies") {
-      const tokens = meaningfulSearchTokens(q);
-      const body =
-        tokens.length > 0 ?
-          {
-            filterGroups: [
-              {
-                filters: tokens.map((token) => ({
-                  propertyName: "name",
-                  operator: "CONTAINS_TOKEN" as const,
-                  value: token,
-                })),
-              },
-              {
-                filters: tokens.map((token) => ({
-                  propertyName: "domain",
-                  operator: "CONTAINS_TOKEN" as const,
-                  value: token,
-                })),
-              },
-            ],
-            limit: SEARCH_LIMIT,
-            properties: ["name", "domain"],
-            sorts: [{ propertyName: "name", direction: "ASCENDING" }],
-          }
-        : {
-            query: q,
-            limit: SEARCH_LIMIT,
-            properties: ["name", "domain"],
-            sorts: [{ propertyName: "name", direction: "ASCENDING" }],
-          };
-
       const res = await fetch(
         `https://api.hubapi.com/crm/v3/objects/companies/search`,
         {
@@ -87,7 +41,12 @@ export async function GET(req: Request) {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            query: q,
+            limit: SEARCH_LIMIT,
+            properties: ["name", "domain"],
+            sorts: [{ propertyName: "name", direction: "ASCENDING" }],
+          }),
         },
       );
       const data = await res.json();
