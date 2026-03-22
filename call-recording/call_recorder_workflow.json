@@ -1,0 +1,168 @@
+{
+  "name": "Call Recorder → Gemini → HubSpot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "call-audio",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-receive-audio",
+      "name": "Receive Audio",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "call-audio"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"ok\"}"
+      },
+      "id": "respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [240, 500]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"inline_data\": {\n            \"mime_type\": \"audio/mpeg\",\n            \"data\": \"{{ $binary.audio.data }}\"\n          }\n        },\n        {\n          \"text\": \"You are a CRM assistant. Listen to this phone call and extract the following in JSON format only (no markdown, no explanation):\\n\\n{\\n  \\\"contact_name\\\": \\\"Full name of the external person spoken to, or null\\\",\\n  \\\"company\\\": \\\"Their company name, or null\\\",\\n  \\\"summary\\\": \\\"2-4 sentence summary of the call\\\",\\n  \\\"action_items\\\": [\\\"list of follow-up actions if any\\\"],\\n  \\\"outcome\\\": \\\"one of: meeting_booked | follow_up_needed | no_action | not_interested\\\",\\n  \\\"sentiment\\\": \\\"one of: positive | neutral | negative\\\"\\n}\\n\\nReturn ONLY the JSON object.\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "gemini-analyze",
+      "name": "Gemini — Analyze Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const geminiResponse = $input.first().json;\nconst rawText = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? '';\nconst cleaned = rawText.replace(/```json|```/g, '').trim();\n\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = {\n    contact_name: null,\n    company: null,\n    summary: rawText,\n    action_items: [],\n    outcome: 'follow_up_needed',\n    sentiment: 'neutral'\n  };\n}\n\nconst timestamp = new Date().toLocaleString('nb-NO', { timeZone: 'Europe/Oslo' });\nconst actionItemsText = parsed.action_items?.length > 0\n  ? '\\n\\nAction items:\\n' + parsed.action_items.map(a => `• ${a}`).join('\\n')\n  : '';\n\nconst noteBody = [\n  `📞 Call summary — ${timestamp}`,\n  '',\n  parsed.summary,\n  actionItemsText,\n  '',\n  `Outcome: ${parsed.outcome ?? 'unknown'} | Sentiment: ${parsed.sentiment ?? 'unknown'}`,\n  parsed.company ? `Company: ${parsed.company}` : null,\n].filter(Boolean).join('\\n');\n\nreturn [{\n  json: {\n    contact_name: parsed.contact_name,\n    company: parsed.company,\n    note_body: noteBody,\n    outcome: parsed.outcome,\n    sentiment: parsed.sentiment,\n  }\n}];"
+      },
+      "id": "parse-response",
+      "name": "Parse Gemini Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "resource": "contact",
+        "returnAll": false,
+        "limit": 1,
+        "filterGroups": {
+          "filters": [
+            {
+              "propertyName": "firstname",
+              "operator": "CONTAINS_TOKEN",
+              "value": "={{ $json.contact_name?.split(' ')[0] ?? '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "hubspot-find-contact",
+      "name": "HubSpot — Find Contact",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.hubapi.com/crm/v3/objects/notes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"properties\": {\n    \"hs_note_body\": {{ JSON.stringify($('Parse Gemini Response').first().json.note_body) }},\n    \"hs_timestamp\": {{ Date.now() }}\n  },\n  \"associations\": [\n    {\n      \"to\": { \"id\": \"{{ $('HubSpot — Find Contact').first().json.id }}\" },\n      \"types\": [{ \"associationCategory\": \"HUBSPOT_DEFINED\", \"associationTypeId\": 202 }]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "hubspot-note-known",
+      "name": "HubSpot — Note (Known Contact)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/notes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"properties\": {\n    \"hs_note_body\": {{ JSON.stringify($('Parse Gemini Response').first().json.note_body) }},\n    \"hs_timestamp\": {{ Date.now() }}\n  }\n}",
+        "options": {}
+      },
+      "id": "hubspot-note-unknown",
+      "name": "HubSpot — Note (No Contact)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 420]
+    }
+  ],
+  "connections": {
+    "Receive Audio": {
+      "main": [
+        [
+          { "node": "Gemini — Analyze Call", "type": "main", "index": 0 },
+          { "node": "Respond OK", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Gemini — Analyze Call": {
+      "main": [
+        [{ "node": "Parse Gemini Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Gemini Response": {
+      "main": [
+        [{ "node": "HubSpot — Find Contact", "type": "main", "index": 0 }]
+      ]
+    },
+    "HubSpot — Find Contact": {
+      "main": [
+        [
+          {
+            "node": "HubSpot — Note (Known Contact)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [{ "node": "HubSpot — Note (No Contact)", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

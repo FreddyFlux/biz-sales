@@ -10,3 +10,4 @@ export { EmailsSection } from "./EmailsSection";
 export { MeetingsList } from "./MeetingsList";
 export { LegendSection } from "./LegendSection";
 export { ActionsFooter } from "./ActionsFooter";
+export { CallRecordingSection } from "./CallRecordingSection";

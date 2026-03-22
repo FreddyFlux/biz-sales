@@ -20,6 +20,7 @@ import {
   MeetingsList,
   LegendSection,
   ActionsFooter,
+  CallRecordingSection,
 } from "./components";
 
 type UndoableAction = {
@@ -305,6 +306,8 @@ export function DashboardClient({
         onRecord={handleRecord}
         isLoading={isLoading}
       />
+
+      <CallRecordingSection />
 
       <MeetingsList meetings={meetings} />
 
