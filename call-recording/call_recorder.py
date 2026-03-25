@@ -113,6 +113,7 @@ def stop_recording():
         recording_file = None
 
     data = request.get_json(silent=True) or {}
+    print(f'[recorder] Stop body received: {data}')
     contact_id   = data.get("contactId", "")
     contact_name = data.get("contactName", "")
     company_id   = data.get("companyId", "")
@@ -128,28 +129,33 @@ def stop_recording():
 
     return jsonify({"status": "stopped", "sending": True})
 
-
 def send_to_n8n(file_path: str, contact_id: str, contact_name: str, company_id: str, company_name: str):
     try:
-        with open(file_path, "rb") as f:
-            response = requests.post(
-                N8N_AUDIO_WEBHOOK,
-                files={"audio": ("call.mp3", f, "audio/mpeg")},
-                data={
-                    "contactId":   contact_id,
-                    "contactName": contact_name,
-                    "companyId":   company_id,
-                    "companyName": company_name,
-                },
-                timeout=60,
-            )
-        print(f"[recorder] n8n responded: {response.status_code}")
+        import base64
+        with open(file_path, 'rb') as f:
+            audio_base64 = base64.b64encode(f.read()).decode('utf-8')
+
+        payload = {
+            'audioBase64': audio_base64,
+            'mimeType': 'audio/mpeg',
+            'contactId': contact_id,
+            'contactName': contact_name,
+            'companyId': company_id,
+            'companyName': company_name,
+        }
+
+        response = requests.post(
+            N8N_AUDIO_WEBHOOK,
+            json=payload,
+            timeout=60,
+        )
+        print(f'[recorder] n8n responded: {response.status_code}')
     except Exception as e:
-        print(f"[recorder] Failed to send to n8n: {e}")
+        print(f'[recorder] Failed to send to n8n: {e}')
     finally:
         try:
             os.remove(file_path)
-            print(f"[recorder] Deleted local file: {file_path}")
+            print(f'[recorder] Deleted local file: {file_path}')
         except Exception:
             pass
 
