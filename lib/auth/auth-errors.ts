@@ -10,6 +10,7 @@ export type AuthErrorType =
   | "invalid_email"
   | "password_too_short"
   | "password_too_long"
+  | "invalid_reset_token"
   | "unknown";
 
 export interface AuthErrorInfo {
@@ -105,5 +106,82 @@ export function parseSignInError(error: { message?: string } | null): AuthErrorI
     title: "Sign in failed",
     message: error.message,
     hint: "Please try again. If the problem persists, try signing up for a new account.",
+  };
+}
+
+/**
+ * Parse errors from requestPasswordReset (forgot-password).
+ */
+export function parseRequestPasswordResetError(
+  error: { message?: string } | null
+): AuthErrorInfo | null {
+  if (!error?.message) return null;
+
+  const msg = error.message.toLowerCase();
+
+  if (msg.includes("invalid email")) {
+    return {
+      type: "invalid_email",
+      title: "Invalid email",
+      message: "Please enter a valid email address.",
+      hint: undefined,
+    };
+  }
+
+  return {
+    type: "unknown",
+    title: "Could not send reset link",
+    message: error.message,
+    hint: "Please try again in a few minutes.",
+  };
+}
+
+/**
+ * Parse errors from resetPassword (reset-password page).
+ */
+export function parseResetPasswordError(
+  error: { message?: string } | null
+): AuthErrorInfo | null {
+  if (!error?.message) return null;
+
+  const msg = error.message.toLowerCase();
+
+  if (
+    msg.includes("invalid token") ||
+    msg.includes("expired") ||
+    msg.includes("invalid_token")
+  ) {
+    return {
+      type: "invalid_reset_token",
+      title: "Link invalid or expired",
+      message:
+        "This reset link is no longer valid. Password reset links expire after a short time.",
+      hint: "Request a new reset link from the forgot password page.",
+    };
+  }
+
+  if (msg.includes("password") && msg.includes("short")) {
+    return {
+      type: "password_too_short",
+      title: "Password too short",
+      message: error.message,
+      hint: undefined,
+    };
+  }
+
+  if (msg.includes("password") && msg.includes("long")) {
+    return {
+      type: "password_too_long",
+      title: "Password too long",
+      message: error.message,
+      hint: undefined,
+    };
+  }
+
+  return {
+    type: "unknown",
+    title: "Could not reset password",
+    message: error.message,
+    hint: undefined,
   };
 }
